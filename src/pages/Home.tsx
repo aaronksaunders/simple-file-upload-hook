@@ -34,7 +34,7 @@ const Home: React.FC = () => {
         )}
         <input
           type="file"
-          onInput={(e: any) => {
+          onChange={(e: any) => {
             setFileData(e.target.files[0]);
           }}
         />

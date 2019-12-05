@@ -4,18 +4,39 @@ import {
   IonPage,
   IonTitle,
   IonToolbar,
-  IonProgressBar
+  IonProgressBar,
+  IonButton
 } from "@ionic/react";
-import React from "react";
+import React, { useEffect } from "react";
 
 import useFirebaseUpload from "../hooks/useFirebaseUpload";
+import { CameraResultType } from "@capacitor/core";
+import { useCamera, availableFeatures } from "@ionic/react-hooks/dist/camera";
 
 const Home: React.FC = () => {
   // setting up the hook to upload file and track its progress
   const [
-    { data, isLoading, isError, progress },
+    { dataResponse, isLoading, isError, progress },
     setFileData
   ] = useFirebaseUpload();
+
+  const { photo, getPhoto } = useCamera();
+
+  const handleTakePhoto = () => {
+    if (availableFeatures.getPhoto) {
+      getPhoto({
+        quality: 100,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl
+      });
+    }
+  };
+
+  // when the photo state changes, then call setFileData to upload
+  // the image using firebase-hook
+  useEffect(() => {
+    setFileData(photo);
+  }, [photo, setFileData]);
 
   return (
     <IonPage>
@@ -39,9 +60,18 @@ const Home: React.FC = () => {
           }}
         />
         <pre style={{ fontSize: "smaller" }}>
-          {JSON.stringify(data, null, 2)}
+          {JSON.stringify(dataResponse, null, 2)}
         </pre>
-        {data && <img src={data.downloadUrl} alt={data.metaData.name} />}
+        {dataResponse && (
+          <img
+            src={dataResponse.downloadUrl}
+            alt={dataResponse.metaData.name}
+          />
+        )}
+
+        <div>
+          <IonButton onClick={handleTakePhoto}>Take Photo</IonButton>
+        </div>
       </IonContent>
     </IonPage>
   );

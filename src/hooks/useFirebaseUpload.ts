@@ -7,24 +7,25 @@ var firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
-interface UploadDataResponse { metaData: firebase.storage.FullMetadata, downloadUrl: any };
-interface ProgressResponse { value: number }
-interface DataAsDataUrl { dataUrl: string, format: string }
+// defining types...
+type UploadDataResponse  = { metaData: firebase.storage.FullMetadata, downloadUrl: any } | undefined;
+type ProgressResponse = { value: number } | undefined | null
+type DataAsDataUrl = { dataUrl: string, format: string }
 type UploadSource = File | DataAsDataUrl | undefined
 
 // the firebase reference to storage
 const storageRef = firebase.storage().ref();
 
 function FirebaseFileUploadApi(): [{
-    dataResponse: UploadDataResponse | undefined,
+    dataResponse: UploadDataResponse,
     isLoading: boolean,
     isError: any,
-    progress: ProgressResponse | null
+    progress: ProgressResponse
 },
     Function
 ] {
     // the data from the file upload response
-    const [dataResponse, setDataResponse] = useState<UploadDataResponse | undefined>();
+    const [dataResponse, setDataResponse] = useState<UploadDataResponse>();
 
     // sets properties on the file to be uploaded
     const [fileData, setFileData] = useState<UploadSource>();
@@ -36,7 +37,7 @@ function FirebaseFileUploadApi(): [{
     const [isError, setIsError] = useState<any>(false);
 
     // used for tracking the % of upload completed
-    const [progress, setProgress] = useState<ProgressResponse | null>(null);
+    const [progress, setProgress] = useState<ProgressResponse>(null);
 
     // this function will be called when the any properties in the dependency array changes
     useEffect(() => {

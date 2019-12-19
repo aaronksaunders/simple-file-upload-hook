@@ -5,7 +5,8 @@ import {
   IonTitle,
   IonToolbar,
   IonProgressBar,
-  IonButton
+  IonButton,
+  IonToast
 } from "@ionic/react";
 import React, { useEffect } from "react";
 
@@ -17,7 +18,8 @@ const Home: React.FC = () => {
   // setting up the hook to upload file and track its progress
   const [
     { dataResponse, isLoading, isError, progress },
-    setFileData
+    setFileData,
+    clearError
   ] = useFirebaseUpload();
 
   const { photo, getPhoto } = useCamera();
@@ -46,19 +48,19 @@ const Home: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-        {/* get error from hook and display if necessary */}
-        {isError && <div>ERROR: {isError.message}</div>}
 
         {/* get loading information from hook and display progress if necessary */}
         {isLoading && progress && (
           <IonProgressBar value={progress.value}></IonProgressBar>
         )}
-        <input
-          type="file"
-          onChange={(e: any) => {
-            setFileData(e.target.files[0]);
-          }}
-        />
+        {availableFeatures.getPhoto ? null : (
+          <input
+            type="file"
+            onChange={(e: any) => {
+              setFileData(e.target.files[0]);
+            }}
+          />
+        )}
         <pre style={{ fontSize: "smaller" }}>
           {JSON.stringify(dataResponse, null, 2)}
         </pre>
@@ -72,6 +74,23 @@ const Home: React.FC = () => {
         <div>
           <IonButton onClick={handleTakePhoto}>Take Photo</IonButton>
         </div>
+        {/* <!-- the toast for errors --> */}
+        <IonToast
+          isOpen={isError ? true : false}
+          onDidDismiss={() => clearError(false)}
+          message={isError && isError.message}
+          color="danger"
+          position="bottom"
+          buttons={[
+            {
+              text: "Done",
+              role: "cancel",
+              handler: () => {
+                console.log("Cancel clicked");
+              }
+            }
+          ]}
+        />
       </IonContent>
     </IonPage>
   );

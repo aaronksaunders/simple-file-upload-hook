@@ -4,13 +4,6 @@ debugger;
 
 var firebaseConfig = {
   // ADD YOUR FIREBASE CONFIGURATION
-  apiKey: "AIzaSyAlTTdjRdmEt_UCHgqY7W4CiRNTht-Mv0M",
-  authDomain: "vueclass-106b7.firebaseapp.com",
-  databaseURL: "https://vueclass-106b7.firebaseio.com",
-  projectId: "vueclass-106b7",
-  storageBucket: "vueclass-106b7.appspot.com",
-  messagingSenderId: "800099862302",
-  appId: "1:800099862302:web:645135db6c9b16f899ab0f"
 };
 // Initialize Firebase
 if (!firebase.apps.length) {

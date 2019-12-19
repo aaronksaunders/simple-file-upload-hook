@@ -6,21 +6,26 @@ import {
   IonToolbar,
   IonProgressBar,
   IonButton,
-  IonToast
+  IonToast,
+  IonButtons
 } from "@ionic/react";
 import React, { useEffect } from "react";
+import { useHistory, RouteComponentProps } from "react-router-dom";
 
 import useFirebaseUpload from "../hooks/useFirebaseUpload";
+import useAuth from "../hooks/useFirebaseAuth";
 import { CameraResultType } from "@capacitor/core";
 import { useCamera, availableFeatures } from "@ionic/react-hooks/dist/camera";
 
-const Home: React.FC = () => {
+const Home: React.FC<any> = () => {
   // setting up the hook to upload file and track its progress
   const [
     { dataResponse, isLoading, isError, progress },
     setFileData,
     clearError
   ] = useFirebaseUpload();
+  const [{}, { signOut }] = useAuth();
+  const history = useHistory();
 
   const { photo, getPhoto } = useCamera();
 
@@ -34,6 +39,12 @@ const Home: React.FC = () => {
     }
   };
 
+  const doSignOut = () => {
+    signOut().then(() => {
+      history.replace("/login");
+    });
+  };
+
   // when the photo state changes, then call setFileData to upload
   // the image using firebase-hook
   useEffect(() => {
@@ -45,10 +56,12 @@ const Home: React.FC = () => {
       <IonHeader>
         <IonToolbar>
           <IonTitle>Ionic Firebase Upload Hook</IonTitle>
+          <IonButtons slot="end">
+            <IonButton onClick={() => doSignOut()}>Logout</IonButton>
+          </IonButtons>
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-
         {/* get loading information from hook and display progress if necessary */}
         {isLoading && progress && (
           <IonProgressBar value={progress.value}></IonProgressBar>

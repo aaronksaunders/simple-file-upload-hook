@@ -2,100 +2,129 @@ import { useState, useEffect } from "react";
 import firebase from "firebase";
 
 var firebaseConfig = {
-// ADD YOUR FIREBASE CONFIGURATION
+  // ADD YOUR FIREBASE CONFIGURATION
+
 };
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
-interface UploadDataResponse { metaData: firebase.storage.FullMetadata, downloadUrl: any };
-interface ProgressResponse { value: number }
+// defining types...
+type UploadDataResponse =
+  | { metaData: firebase.storage.FullMetadata; downloadUrl: any }
+  | undefined;
+type ProgressResponse = { value: number } | undefined | null;
+type DataAsDataUrl = { dataUrl: string; format: string };
+type UploadSource = File | DataAsDataUrl | undefined;
 
 // the firebase reference to storage
 const storageRef = firebase.storage().ref();
 
-function FirebaseFileUploadApi(): [{
-    data: UploadDataResponse | undefined,
-    isLoading: boolean,
-    isError: any,
-    progress: ProgressResponse | null
-},
-    Function
+function FirebaseFileUploadApi(): [
+  {
+    dataResponse: UploadDataResponse;
+    isLoading: boolean;
+    isError: any;
+    progress: ProgressResponse;
+  },
+  Function,
+  Function
 ] {
-    // the data from the file upload response
-    const [data, setData] = useState<UploadDataResponse | undefined>();
+  // the data from the file upload response
+  const [dataResponse, setDataResponse] = useState<UploadDataResponse>();
 
-    // sets properties on the file to be uploaded
-    const [fileData, setFileData] = useState<File | null>();
+  // sets properties on the file to be uploaded
+  const [fileData, setFileData] = useState<UploadSource>();
 
-    // if we are loading a file or not
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+  // if we are loading a file or not
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    // if an error happened during the process
-    const [isError, setIsError] = useState<any>(false);
+  // if an error happened during the process
+  const [isError, setIsError] = useState<any>(false);
 
-    // used for tracking the % of upload completed
-    const [progress, setProgress] = useState<ProgressResponse | null>(null);
+  // used for tracking the % of upload completed
+  const [progress, setProgress] = useState<ProgressResponse>(null);
 
-    // this function will be called when the any properties in the dependency array changes
-    useEffect(() => {
-        const uploadData = async () => {
-            // initialize upload information
+  const clearError = () => {
+    setIsError(null);
+  };
+
+  // this function will be called when the any properties in the dependency array changes
+  useEffect(() => {
+    /**
+     *
+     * @param _value
+     */
+    const setUp = (_value: UploadSource): firebase.storage.UploadTask => {
+      if (_value instanceof File) {
+        let fName = `${new Date().getTime()}-${_value.name}`;
+        // setting the firebase properties for the file upload
+        let ref = storageRef.child("images/" + fName);
+        return ref.put(_value);
+      } else {
+        let v = _value as DataAsDataUrl;
+        let fName = `${new Date().getTime()}.${v.format}`;
+        // setting the firebase properties for the file upload
+        let ref = storageRef.child("images/" + fName);
+        return ref.putString(v.dataUrl, "data_url");
+      }
+    };
+
+    const uploadData = async () => {
+      // initialize upload information
+      setIsError(false);
+      setIsLoading(true);
+
+      setProgress({ value: 0 });
+
+      // handle a file upload or a dataUrl upload
+      let uploadTask = setUp(fileData);
+
+      // wrap the whole thing in a try catch block to update the error state
+      try {
+        // tracking the state of the upload to assist in updating the
+        // application UI
+        uploadTask.on(
+          firebase.storage.TaskEvent.STATE_CHANGED,
+          _progress => {
+            var value = _progress.bytesTransferred / _progress.totalBytes;
+            console.log("Upload is " + value * 100 + "% done");
+            setProgress({ value });
+          },
+          _error => {
+            setIsLoading(false);
+            setIsError(_error);
+          },
+          async () => {
             setIsError(false);
-            setIsLoading(true);
+            setIsLoading(false);
 
-            setProgress({ value: 0 });
+            // need to get the url to download the file
+            let downloadUrl = await uploadTask.snapshot.ref.getDownloadURL();
 
-            if (!fileData) return;
+            // set the data when upload has completed
+            setDataResponse({
+              metaData: uploadTask.snapshot.metadata,
+              downloadUrl
+            });
 
-            // wrap the whole thing in a try catch block to update the error state
-            try {
-                let fName = `${(new Date()).getTime()}-${fileData.name}`
+            // reset progress
+            setProgress(null);
+          }
+        );
+      } catch (_error) {
+        setIsLoading(false);
+        setIsError(_error);
+      }
+    };
 
-                // setting the firebase properties for the file upload
-                let ref = storageRef.child("images/" + fName);
-                let uploadTask = ref.put(fileData);
+    fileData && uploadData();
+  }, [fileData]);
 
-                // tracking the state of the upload to assist in updating the
-                // application UI
-                uploadTask.on(
-                    firebase.storage.TaskEvent.STATE_CHANGED,
-                    _progress => {
-                        var value =
-                            (_progress.bytesTransferred / _progress.totalBytes);
-                        console.log("Upload is " + value * 100 + "% done");
-                        setProgress({ value });
-                    },
-                    _error => {
-                        setIsLoading(false);
-                        setIsError(_error);
-                    },
-                    async () => {
-                        setIsError(false);
-                        setIsLoading(false);
-
-                        // need to get the url to download the file
-                        let downloadUrl = await uploadTask.snapshot.ref.getDownloadURL();
-
-                        // set the data when upload has completed
-                        setData({
-                            metaData: uploadTask.snapshot.metadata,
-                            downloadUrl
-                        });
-
-                        // reset progress
-                        setProgress(null);
-                    }
-                );
-            } catch (_error) {
-                setIsLoading(false);
-                setIsError(_error);
-            }
-        };
-
-        fileData && uploadData();
-    }, [fileData]);
-
-    return [{ data, isLoading, isError, progress }, setFileData];
+  return [
+    { dataResponse, isLoading, isError, progress },
+    setFileData,
+    clearError
+  ];
 }
 
 export default FirebaseFileUploadApi;
